@@ -215,7 +215,7 @@ export default function Home() {
     }
   };
 
-  // Send question to API
+  // Send question to API with streaming
   const sendQuestion = async (question: string) => {
     if (!question.trim()) return;
 
@@ -229,6 +229,17 @@ export default function Home() {
     setMessages(prev => [...prev, userMessage]);
     setTranscript('');
     setIsLoading(true);
+
+    // Create placeholder for streaming response
+    const assistantId = (Date.now() + 1).toString();
+    const assistantMessage: Message = {
+      id: assistantId,
+      type: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      language: 'auto'
+    };
+    setMessages(prev => [...prev, assistantMessage]);
 
     try {
       const conversationHistory = messages
@@ -250,30 +261,61 @@ export default function Home() {
         })
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content: data.answer,
-          timestamp: new Date(),
-          language: data.detectedLanguage
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        
-        // Mostrar idioma detectado
-        if (data.detectedLanguage) {
-          const langLabel = data.detectedLanguage === 'pt' ? 'Português' : 
-                           data.detectedLanguage === 'en' ? 'English' : 'Auto';
-          toast.success(`Resposta gerada em ${langLabel}`);
-        }
-      } else {
-        toast.error(data.error || 'Erro ao gerar resposta');
+      // Read streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (!reader) {
+        throw new Error('No response body');
       }
+
+      let fullContent = '';
+      let detectedLang = 'auto';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'language') {
+                detectedLang = data.language;
+                // Update language badge
+                setMessages(prev => prev.map(m => 
+                  m.id === assistantId ? { ...m, language: detectedLang } : m
+                ));
+              } else if (data.type === 'text') {
+                fullContent += data.content;
+                // Update content in real-time
+                setMessages(prev => prev.map(m => 
+                  m.id === assistantId ? { ...m, content: fullContent } : m
+                ));
+              } else if (data.type === 'error') {
+                toast.error(data.error);
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+
+      // Show language detected toast
+      const langLabel = detectedLang === 'pt' ? 'Português' : 
+                       detectedLang === 'en' ? 'English' : 'Auto';
+      toast.success(`Resposta em ${langLabel}`);
+
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erro ao conectar com a API');
+      // Remove placeholder message on error
+      setMessages(prev => prev.filter(m => m.id !== assistantId));
     } finally {
       setIsLoading(false);
     }
