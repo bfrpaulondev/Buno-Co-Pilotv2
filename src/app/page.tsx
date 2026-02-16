@@ -6,10 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { 
   Mic, 
@@ -21,14 +19,13 @@ import {
   Sparkles, 
   User, 
   Bot, 
-  Volume2,
   Settings,
-  HelpCircle,
   Star,
   Target,
   Briefcase,
   Globe,
-  Zap
+  Zap,
+  Languages
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -67,6 +64,7 @@ interface Message {
   type: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+  language?: string;
 }
 
 export default function Home() {
@@ -74,7 +72,7 @@ export default function Home() {
   const [transcript, setTranscript] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [language, setLanguage] = useState('pt');
+  const [language, setLanguage] = useState('auto');
   const [cvData, setCvData] = useState(DEFAULT_CV);
   const [showSettings, setShowSettings] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -106,12 +104,8 @@ export default function Home() {
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    const langMap: Record<string, string> = {
-      pt: 'pt-BR',
-      en: 'en-US',
-      auto: 'pt-BR'
-    };
-    recognition.lang = langMap[language] || 'pt-BR';
+    // Usar português como base, mas detectar automaticamente
+    recognition.lang = 'pt-BR';
 
     recognition.onresult = (event) => {
       let interimTranscript = '';
@@ -149,7 +143,7 @@ export default function Home() {
     };
 
     return recognition;
-  }, [language, isListening]);
+  }, [isListening]);
 
   // Start/stop listening
   const toggleListening = useCallback(() => {
@@ -210,9 +204,17 @@ export default function Home() {
           id: (Date.now() + 1).toString(),
           type: 'assistant',
           content: data.answer,
-          timestamp: new Date()
+          timestamp: new Date(),
+          language: data.detectedLanguage
         };
         setMessages(prev => [...prev, assistantMessage]);
+        
+        // Mostrar idioma detectado
+        if (data.detectedLanguage) {
+          const langLabel = data.detectedLanguage === 'pt' ? 'Português' : 
+                           data.detectedLanguage === 'en' ? 'English' : 'Auto';
+          toast.success(`Resposta gerada em ${langLabel}`);
+        }
       } else {
         toast.error(data.error || 'Erro ao gerar resposta');
       }
@@ -276,13 +278,13 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white">
-                  <Globe className="w-4 h-4 mr-2" />
+                  <Languages className="w-4 h-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pt">Português</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="auto">Auto</SelectItem>
+                  <SelectItem value="auto">🚀 Auto</SelectItem>
+                  <SelectItem value="pt">🇧🇷 PT</SelectItem>
+                  <SelectItem value="en">🇺🇸 EN</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -298,6 +300,16 @@ export default function Home() {
           </div>
         </div>
       </header>
+
+      {/* Language Mode Banner */}
+      <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border-b border-green-500/20 py-2">
+        <div className="container mx-auto px-4">
+          <p className="text-center text-sm text-white/80">
+            <Languages className="w-4 h-4 inline mr-2" />
+            <strong>Modo Auto:</strong> A IA detecta automaticamente se a pergunta é em português ou inglês e responde no mesmo idioma!
+          </p>
+        </div>
+      </div>
 
       <div className="container mx-auto px-4 py-6">
         <div className="grid lg:grid-cols-3 gap-6">
@@ -349,9 +361,12 @@ export default function Home() {
 
                 <Separator className="bg-white/10" />
 
-                <div className="p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                <div className="p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
                   <p className="text-xs text-white/80">
-                    <strong className="text-white">🎯 Dica:</strong> As respostas são geradas com base no seu CV real, sem inventar informações.
+                    <strong className="text-white flex items-center gap-1">
+                      <Languages className="w-3 h-3" /> Detecção Automática de Idioma
+                    </strong>
+                    <span className="mt-1 block">A entrevista pode começar em português e mudar para inglês a qualquer momento. A IA detecta automaticamente!</span>
                   </p>
                 </div>
               </CardContent>
@@ -365,7 +380,7 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
                 <span className="text-sm text-white/60">
-                  {isListening ? 'Ouvindo...' : 'Pronto para ouvir'}
+                  {isListening ? '🎧 Ouvindo (PT/EN)...' : 'Pronto para ouvir'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -391,7 +406,7 @@ export default function Home() {
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-6 h-[500px]">
+            <ScrollArea className="flex-1 p-6 h-[450px]">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
                   <div className="relative">
@@ -403,7 +418,7 @@ export default function Home() {
                   <div className="space-y-2">
                     <h2 className="text-2xl font-bold text-white">Pronto para sua entrevista!</h2>
                     <p className="text-white/60 max-w-md">
-                      Clique no microfone e faça uma pergunta. O assistente vai gerar uma resposta baseada no seu CV.
+                      Clique no microfone e faça uma pergunta. A IA detecta automaticamente o idioma (PT/EN) e responde no mesmo idioma!
                     </p>
                   </div>
                   
@@ -417,8 +432,8 @@ export default function Home() {
                       <p className="text-xs text-white/60">20+ projetos</p>
                     </div>
                     <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-                      <Globe className="w-6 h-6 mx-auto mb-2 text-blue-400" />
-                      <p className="text-xs text-white/60">Clientes internacionais</p>
+                      <Languages className="w-6 h-6 mx-auto mb-2 text-green-400" />
+                      <p className="text-xs text-white/60">PT + EN</p>
                     </div>
                   </div>
                 </div>
@@ -452,6 +467,19 @@ export default function Home() {
                           ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-100'
                           : 'bg-white/10 border border-white/10 text-white'
                       }`}>
+                        {/* Language Badge */}
+                        {message.type === 'assistant' && message.language && (
+                          <div className="mb-2">
+                            <Badge variant="outline" className={`text-xs ${
+                              message.language === 'pt' 
+                                ? 'border-green-500/30 text-green-300' 
+                                : 'border-blue-500/30 text-blue-300'
+                            }`}>
+                              {message.language === 'pt' ? '🇧🇷 Português' : '🇺🇸 English'}
+                            </Badge>
+                          </div>
+                        )}
+                        
                         <div className="whitespace-pre-wrap text-sm">{message.content}</div>
                         
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
@@ -492,7 +520,7 @@ export default function Home() {
                       <div className="bg-white/10 border border-white/10 rounded-2xl px-4 py-3">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-4 h-4 animate-spin text-purple-400" />
-                          <span className="text-white/60 text-sm">Gerando resposta...</span>
+                          <span className="text-white/60 text-sm">Detectando idioma e gerando resposta...</span>
                         </div>
                       </div>
                     </div>
@@ -532,7 +560,7 @@ export default function Home() {
                   ) : (
                     <>
                       <Mic className="w-5 h-5 mr-2" />
-                      Ouvir
+                      Ouvir (PT/EN)
                     </>
                   )}
                 </Button>
@@ -549,7 +577,7 @@ export default function Home() {
               </div>
               
               <p className="text-xs text-center text-white/40">
-                Use o microfone para transcrever a pergunta do recrutador
+                🎤 O microfone captura português e inglês automaticamente • A resposta será no idioma da pergunta
               </p>
             </div>
           </Card>
@@ -566,7 +594,7 @@ export default function Home() {
                 <div>
                   <h3 className="font-medium text-white text-sm">Primeira Pergunta</h3>
                   <p className="text-xs text-white/60 mt-1">
-                    "Por que a vaga está aberta?" - Molda suas respostas
+                    "Por que a vaga está aberta?"
                   </p>
                 </div>
               </div>
@@ -593,12 +621,12 @@ export default function Home() {
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-green-500/20">
-                  <Check className="w-5 h-5 text-green-400" />
+                  <Languages className="w-5 h-5 text-green-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white text-sm">Sem Mentiras</h3>
+                  <h3 className="font-medium text-white text-sm">Auto-Detecção</h3>
                   <p className="text-xs text-white/60 mt-1">
-                    Respostas baseadas apenas no seu CV real
+                    PT → EN → PT automaticamente
                   </p>
                 </div>
               </div>
@@ -612,9 +640,9 @@ export default function Home() {
                   <Zap className="w-5 h-5 text-orange-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white text-sm">Seus Pontos Fortes</h3>
+                  <h3 className="font-medium text-white text-sm">Sem Mentiras</h3>
                   <p className="text-xs text-white/60 mt-1">
-                    React, Node.js, 20+ projetos, inglês fluente
+                    Apenas seu CV real
                   </p>
                 </div>
               </div>
