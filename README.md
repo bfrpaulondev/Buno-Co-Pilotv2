@@ -1,141 +1,139 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# 🎯 Interview Assistant AI - Bruno Co-Pilot v2
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+Uma **PWA (Progressive Web App)** moderna para auxiliar durante entrevistas de emprego, com transcrição de voz em tempo real e respostas personalizadas geradas por IA.
 
-## ✨ Technology Stack
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-4-38B2AC?style=flat-square&logo=tailwind-css)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-green?style=flat-square&logo=openai)
 
-This scaffold provides a robust foundation built with:
+## ✨ Funcionalidades
 
-### 🎯 Core Framework
-- **⚡ Next.js 16** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+- 🎤 **Transcrição de Voz em Tempo Real** - Captura perguntas usando Web Speech API
+- 🤖 **Respostas com IA** - GPT-4o gera respostas personalizadas baseadas no seu CV
+- 📱 **PWA Instalável** - Funciona como app nativo no celular ou desktop
+- 🌍 **Multilíngue** - Suporte a Português e Inglês
+- ⭐ **Método STAR** - Respostas estruturadas automaticamente
+- 🎯 **Dicas Estratégicas** - Primeira pergunta chave para moldar a entrevista
 
-### 🧩 UI Components & Styling
-- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
-- **🎯 Lucide React** - Beautiful & consistent icon library
-- **🌈 Framer Motion** - Production-ready motion library for React
-- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
+## 🚀 Tecnologias
 
-### 📋 Forms & Validation
-- **🎣 React Hook Form** - Performant forms with easy validation
-- **✅ Zod** - TypeScript-first schema validation
+- **Next.js 15** - App Router com React 19
+- **TypeScript** - Tipagem estática
+- **Tailwind CSS 4** - Estilos modernos
+- **shadcn/ui** - Componentes UI
+- **OpenAI GPT-4o** - IA para respostas
+- **Web Speech API** - Transcrição de voz
+- **PWA** - Manifest, Service Worker, ícones
 
-### 🔄 State Management & Data Fetching
-- **🐻 Zustand** - Simple, scalable state management
-- **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Fetch** - Promise-based HTTP request
-
-### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation TypeScript ORM
-- **🔐 NextAuth.js** - Complete open-source authentication solution
-
-### 🎨 Advanced UI Features
-- **📊 TanStack Table** - Headless UI for building tables and datagrids
-- **🖱️ DND Kit** - Modern drag and drop toolkit for React
-- **📊 Recharts** - Redefined chart library built with React and D3
-- **🖼️ Sharp** - High performance image processing
-
-### 🌍 Internationalization & Utilities
-- **🌍 Next Intl** - Internationalization library for Next.js
-- **📅 Date-fns** - Modern JavaScript date utility library
-- **🪝 ReactUse** - Collection of essential React hooks for modern development
-
-## 🎯 Why This Scaffold?
-
-- **🏎️ Fast Development** - Pre-configured tooling and best practices
-- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
-- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
-- **📱 Responsive** - Mobile-first design principles with smooth animations
-- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
-- **🔐 Auth Included** - NextAuth.js for secure authentication flows
-- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
-- **🌍 i18n Ready** - Multi-language support with Next Intl
-- **🚀 Production Ready** - Optimized build and deployment settings
-- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
-
-## 🚀 Quick Start
+## 📦 Instalação
 
 ```bash
-# Install dependencies
+# Clone o repositório
+git clone https://github.com/bfrpaulondev/Buno-Co-Pilotv2.git
+
+# Entre na pasta
+cd Buno-Co-Pilotv2
+
+# Instale as dependências
 bun install
 
-# Start development server
+# Execute em desenvolvimento
 bun run dev
-
-# Build for production
-bun run build
-
-# Start production server
-bun start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
+Acesse: http://localhost:3000
 
-## 🤖 Powered by Z.ai
+## 💡 Como Usar
 
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
+1. **Abra a aplicação** no navegador
+2. **Clique em "Ouvir"** para ativar o microfone
+3. **Permita o acesso** ao microfone quando solicitado
+4. **A pergunta do recrutador** será transcrita automaticamente
+5. **Clique "Enviar"** para gerar a resposta
+6. **Leia e adapte** a resposta sugerida antes de falar
 
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
+## 🎯 Primeira Pergunta Estratégica
 
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
+> **"Por que a vaga está aberta? É uma nova posição ou substituição? Quais são os principais desafios que a equipe está enfrentando?"**
 
-## 📁 Project Structure
+Faça essa pergunta no início da entrevista. A resposta vai te ajudar a moldar suas experiências de forma alinhada às necessidades da empresa.
+
+## ⭐ Método STAR
+
+As respostas são geradas usando o método STAR:
+
+| Letra | Significado | Descrição |
+|-------|-------------|-----------|
+| **S** | Situação | Contexto onde aconteceu |
+| **T** | Tarefa | Seu objetivo/responsabilidade |
+| **A** | Ação | O que você FEZ especificamente |
+| **R** | Resultado | Resultado concreto com números |
+
+## 🏆 Seus Pontos Fortes
+
+O assistente destaca automaticamente:
+
+- ✅ 5+ anos de experiência com React e Node.js
+- ✅ 20+ projetos entregues com 95% de satisfação
+- ✅ Clientes internacionais (Brasil, Portugal, Espanha, EUA)
+- ✅ Inglês fluente + Português nativo
+- ✅ Experiência com Scrum e trabalho remoto
+
+## 📱 Instalar como App
+
+1. Abra a aplicação no Chrome/Brave
+2. Clique no botão **"Instalar App"** no canto inferior direito
+3. Ou use o menu do navegador: "Instalar aplicativo"
+
+## 🔧 Configuração
+
+### Editar CV
+
+1. Clique no ícone de **Configurações** (engrenagem)
+2. Edite o texto do seu currículo
+3. As respostas serão baseadas nas suas informações
+
+### Idioma
+
+Selecione o idioma das respostas:
+- **Português** - Respostas em PT-BR
+- **English** - Respostas em inglês
+- **Auto** - Detecta o idioma da pergunta
+
+## 📁 Estrutura do Projeto
 
 ```
 src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
+├── app/
+│   ├── api/
+│   │   └── interview/
+│   │       └── route.ts      # API OpenAI
+│   ├── layout.tsx            # Layout PWA
+│   ├── page.tsx              # Interface principal
+│   └── globals.css           # Estilos globais
+├── components/
+│   └── ui/                   # Componentes shadcn/ui
+└── hooks/                    # Hooks customizados
+
+public/
+├── manifest.json             # Configuração PWA
+├── sw.js                     # Service Worker
+├── icon-192.png              # Ícone 192x192
+└── icon-512.png              # Ícone 512x512
 ```
 
-## 🎨 Available Features & Components
+## ⚠️ Importante
 
-This scaffold includes a comprehensive set of modern web development tools:
+- As respostas são baseadas **apenas no seu CV real**
+- **NUNCA inventa** experiências ou habilidades
+- **Sempre leia e adapte** a resposta antes de falar
+- A IA conhece seu CV, mas não o contexto completo
 
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
+## 📄 Licença
 
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
-
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
-
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Fetch + TanStack Query
-- **State Management**: Simple and scalable with Zustand
-
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
-
-## 🤝 Get Started with Z.ai
-
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
+MIT License - Desenvolvido para Bruno Paulon
 
 ---
 
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+**Boa sorte na entrevista! 🚀**
