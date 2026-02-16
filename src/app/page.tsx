@@ -23,10 +23,11 @@ import {
   Star,
   Target,
   Briefcase,
-  Globe,
   Zap,
   Languages,
-  Lightbulb
+  Lightbulb,
+  AudioWaveform,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -69,7 +70,8 @@ interface Message {
 }
 
 export default function Home() {
-  const [isListening, setIsListening] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,11 +79,12 @@ export default function Home() {
   const [cvData, setCvData] = useState(DEFAULT_CV);
   const [showSettings, setShowSettings] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isSupported, setIsSupported] = useState(true);
-  const [micError, setMicError] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState('');
+  const [recordingTime, setRecordingTime] = useState(0);
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when new messages arrive
@@ -89,87 +92,128 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Check speech recognition support
+  // Timer for recording
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setIsSupported(false);
-      toast.error('Reconhecimento de voz não suportado neste navegador');
-    }
-  }, []);
-
-  // Initialize speech recognition
-  const initSpeechRecognition = useCallback(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return null;
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    // Usar português como base, mas detectar automaticamente
-    recognition.lang = 'pt-BR';
-
-    recognition.onresult = (event) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
-      }
-
-      if (interimTranscript) {
-        setTranscript(prev => prev + ' ' + interimTranscript);
-      }
-      if (finalTranscript) {
-        setTranscript(prev => prev + ' ' + finalTranscript);
-      }
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-      
-      if (event.error === 'not-allowed') {
-        setMicError('Microfone bloqueado. Clique no cadeado na barra de endereço e permita o microfone.');
-        toast.error('Microfone bloqueado! Use o campo de texto ou permita o acesso.', { duration: 5000 });
-      } else if (event.error === 'no-speech') {
-        toast.info('Nenhuma fala detectada. Tente novamente.');
-      } else {
-        toast.error(`Erro no microfone: ${event.error}`);
-      }
-    };
-
-    recognition.onend = () => {
-      if (isListening) {
-        recognition.start();
-      }
-    };
-
-    return recognition;
-  }, [isListening]);
-
-  // Start/stop listening
-  const toggleListening = useCallback(() => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      toast.info('Microfone desativado');
+    if (isRecording) {
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
     } else {
-      const recognition = initSpeechRecognition();
-      if (recognition) {
-        recognition.start();
-        recognitionRef.current = recognition;
-        setIsListening(true);
-        toast.success('Ouvindo... Fale sua pergunta');
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
       }
+      setRecordingTime(0);
     }
-  }, [isListening, initSpeechRecognition]);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isRecording]);
+
+  // Format recording time
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Convert blob to base64
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        // Remove o prefixo "data:audio/...;base64,"
+        const base64Data = base64.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // Start recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { 
+        mimeType: 'audio/webm;codecs=opus' 
+      });
+      
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+      };
+      
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+      setIsRecording(true);
+      toast.success('🎤 Gravando... Clique novamente para parar');
+      
+    } catch (error) {
+      console.error('Erro ao acessar microfone:', error);
+      toast.error('Erro ao acessar microfone. Verifique as permissões.');
+    }
+  };
+
+  // Stop recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Transcribe audio using backend API
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    toast.info('🎧 Transcrevendo áudio...');
+    
+    try {
+      const base64Audio = await blobToBase64(audioBlob);
+      
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioBase64: base64Audio })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.text) {
+        setTranscript(data.text);
+        toast.success('✅ Áudio transcrito!');
+      } else {
+        toast.error(data.error || 'Erro na transcrição');
+      }
+      
+    } catch (error) {
+      console.error('Erro na transcrição:', error);
+      toast.error('Erro ao transcrever áudio');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  // Toggle recording
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
 
   // Send question to API
   const sendQuestion = async (question: string) => {
@@ -314,8 +358,8 @@ export default function Home() {
       <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border-b border-green-500/20 py-2">
         <div className="container mx-auto px-4">
           <p className="text-center text-sm text-white/80">
-            <Languages className="w-4 h-4 inline mr-2" />
-            <strong>Modo Auto:</strong> A IA detecta automaticamente se a pergunta é em português ou inglês e responde no mesmo idioma!
+            <AudioWaveform className="w-4 h-4 inline mr-2" />
+            <strong>Gravação de Áudio:</strong> Clique no microfone, fale a pergunta e clique novamente. A IA transcreve automaticamente!
           </p>
         </div>
       </div>
@@ -373,9 +417,9 @@ export default function Home() {
                 <div className="p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
                   <p className="text-xs text-white/80">
                     <strong className="text-white flex items-center gap-1">
-                      <Languages className="w-3 h-3" /> Detecção Automática de Idioma
+                      <AudioWaveform className="w-3 h-3" /> Como Funciona
                     </strong>
-                    <span className="mt-1 block">A entrevista pode começar em português e mudar para inglês a qualquer momento. A IA detecta automaticamente!</span>
+                    <span className="mt-1 block">1. Clique no microfone para começar a gravar<br/>2. Fale a pergunta da recrutadora<br/>3. Clique novamente para parar<br/>4. A IA transcreve e responde!</span>
                   </p>
                 </div>
               </CardContent>
@@ -387,9 +431,10 @@ export default function Home() {
             {/* Status Bar */}
             <div className="px-6 py-3 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
+                <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : isTranscribing ? 'bg-yellow-500 animate-pulse' : 'bg-gray-500'}`} />
                 <span className="text-sm text-white/60">
-                  {isListening ? '🎧 Ouvindo (PT/EN)...' : 'Pronto para ouvir'}
+                  {isRecording ? `🔴 Gravando ${formatTime(recordingTime)}` : 
+                   isTranscribing ? '🎧 Transcrevendo...' : 'Pronto para gravar'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -415,7 +460,7 @@ export default function Home() {
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-6 h-[450px]">
+            <ScrollArea className="flex-1 p-6 h-[400px]">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
                   <div className="relative">
@@ -427,7 +472,7 @@ export default function Home() {
                   <div className="space-y-2">
                     <h2 className="text-2xl font-bold text-white">Pronto para sua entrevista!</h2>
                     <p className="text-white/60 max-w-md">
-                      Clique no microfone e faça uma pergunta. A IA detecta automaticamente o idioma (PT/EN) e responde no mesmo idioma!
+                      Clique no microfone para gravar a pergunta da recrutadora. A IA detecta automaticamente o idioma (PT/EN) e responde no mesmo idioma!
                     </p>
                   </div>
                   
@@ -542,25 +587,23 @@ export default function Home() {
 
             {/* Input Area */}
             <div className="p-4 border-t border-white/10 space-y-3">
-              {/* Mic Error Warning */}
-              {micError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                  <p className="text-sm text-red-300 flex items-center gap-2">
-                    <MicOff className="w-4 h-4" />
-                    {micError}
-                  </p>
+              {/* Transcript preview */}
+              {transcript && (
+                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <p className="text-xs text-green-300 mb-1">📝 Texto transcrito:</p>
+                  <p className="text-sm text-white/90">{transcript}</p>
                 </div>
               )}
               
-              {/* Manual Input - Always available */}
+              {/* Manual Input */}
               <div className="space-y-2">
-                <Label className="text-white/60 text-xs">Digite sua pergunta (alternativa ao microfone):</Label>
+                <Label className="text-white/60 text-xs">Ou digite sua pergunta manualmente:</Label>
                 <div className="flex gap-2">
                   <Textarea
                     value={manualInput}
                     onChange={(e) => setManualInput(e.target.value)}
                     placeholder="Digite a pergunta da recrutadora aqui..."
-                    className="min-h-[60px] bg-white/5 border-white/10 text-white placeholder:text-white/40 resize-none"
+                    className="min-h-[50px] bg-white/5 border-white/10 text-white placeholder:text-white/40 resize-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -584,51 +627,53 @@ export default function Home() {
               
               <Separator className="bg-white/10" />
               
-              {/* Transcript preview */}
-              {transcript && (
-                <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-                  <p className="text-sm text-white/80">{transcript}</p>
-                </div>
-              )}
-              
-              {/* Voice controls */}
-              <div className="flex gap-2">
+              {/* Recording controls */}
+              <div className="flex gap-2 items-center">
                 <Button
-                  onClick={toggleListening}
-                  disabled={!isSupported}
+                  onClick={toggleRecording}
+                  disabled={isTranscribing}
                   className={`${
-                    isListening
-                      ? 'bg-red-500 hover:bg-red-600'
+                    isRecording
+                      ? 'bg-red-500 hover:bg-red-600 animate-pulse'
                       : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
                   } text-white`}
                   size="lg"
                 >
-                  {isListening ? (
+                  {isRecording ? (
                     <>
                       <MicOff className="w-5 h-5 mr-2" />
-                      Parar
+                      Parar ({formatTime(recordingTime)})
                     </>
                   ) : (
                     <>
                       <Mic className="w-5 h-5 mr-2" />
-                      Ouvir (PT/EN)
+                      Gravar Áudio
                     </>
                   )}
                 </Button>
                 
-                <Button
-                  onClick={() => sendQuestion(transcript)}
-                  disabled={!transcript.trim() || isLoading}
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/10"
-                  size="lg"
-                >
-                  <Send className="w-5 h-5 mr-2" />
-                  Enviar Voz
-                </Button>
+                {transcript && (
+                  <Button
+                    onClick={() => sendQuestion(transcript)}
+                    disabled={isLoading || isTranscribing}
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                    size="lg"
+                  >
+                    <Send className="w-5 h-5 mr-2" />
+                    Enviar Transcrição
+                  </Button>
+                )}
+                
+                {isTranscribing && (
+                  <div className="flex items-center gap-2 text-white/60">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">Transcrevendo...</span>
+                  </div>
+                )}
               </div>
               
               <p className="text-xs text-center text-white/40">
-                💡 Digite sua pergunta acima ou use o microfone • A resposta será no idioma da pergunta
+                🎤 Clique em "Gravar Áudio", fale a pergunta e clique novamente • Funciona em qualquer navegador!
               </p>
             </div>
           </Card>
@@ -724,11 +769,9 @@ export default function Home() {
   );
 }
 
-// Add TypeScript declaration for webkitSpeechRecognition
+// Add TypeScript declaration for PWA
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
     deferredPrompt?: { prompt: () => void };
   }
 }
