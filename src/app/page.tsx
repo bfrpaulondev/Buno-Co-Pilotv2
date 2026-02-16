@@ -78,6 +78,8 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(true);
+  const [micError, setMicError] = useState<string | null>(null);
+  const [manualInput, setManualInput] = useState('');
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -131,10 +133,16 @@ export default function Home() {
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      if (event.error === 'not-allowed') {
-        toast.error('Permita o acesso ao microfone');
-      }
       setIsListening(false);
+      
+      if (event.error === 'not-allowed') {
+        setMicError('Microfone bloqueado. Clique no cadeado na barra de endereço e permita o microfone.');
+        toast.error('Microfone bloqueado! Use o campo de texto ou permita o acesso.', { duration: 5000 });
+      } else if (event.error === 'no-speech') {
+        toast.info('Nenhuma fala detectada. Tente novamente.');
+      } else {
+        toast.error(`Erro no microfone: ${event.error}`);
+      }
     };
 
     recognition.onend = () => {
@@ -534,6 +542,48 @@ export default function Home() {
 
             {/* Input Area */}
             <div className="p-4 border-t border-white/10 space-y-3">
+              {/* Mic Error Warning */}
+              {micError && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-sm text-red-300 flex items-center gap-2">
+                    <MicOff className="w-4 h-4" />
+                    {micError}
+                  </p>
+                </div>
+              )}
+              
+              {/* Manual Input - Always available */}
+              <div className="space-y-2">
+                <Label className="text-white/60 text-xs">Digite sua pergunta (alternativa ao microfone):</Label>
+                <div className="flex gap-2">
+                  <Textarea
+                    value={manualInput}
+                    onChange={(e) => setManualInput(e.target.value)}
+                    placeholder="Digite a pergunta da recrutadora aqui..."
+                    className="min-h-[60px] bg-white/5 border-white/10 text-white placeholder:text-white/40 resize-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendQuestion(manualInput);
+                        setManualInput('');
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={() => {
+                      sendQuestion(manualInput);
+                      setManualInput('');
+                    }}
+                    disabled={!manualInput.trim() || isLoading}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                  >
+                    <Send className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+              
+              <Separator className="bg-white/10" />
+              
               {/* Transcript preview */}
               {transcript && (
                 <div className="p-3 rounded-lg bg-white/5 border border-white/10">
@@ -541,7 +591,7 @@ export default function Home() {
                 </div>
               )}
               
-              {/* Input controls */}
+              {/* Voice controls */}
               <div className="flex gap-2">
                 <Button
                   onClick={toggleListening}
@@ -573,12 +623,12 @@ export default function Home() {
                   size="lg"
                 >
                   <Send className="w-5 h-5 mr-2" />
-                  Enviar
+                  Enviar Voz
                 </Button>
               </div>
               
               <p className="text-xs text-center text-white/40">
-                🎤 O microfone captura português e inglês automaticamente • A resposta será no idioma da pergunta
+                💡 Digite sua pergunta acima ou use o microfone • A resposta será no idioma da pergunta
               </p>
             </div>
           </Card>
