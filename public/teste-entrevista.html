@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Entrevista - Simulador</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 40px 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .question {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .question:hover { transform: translateX(5px); }
+        .question-num { font-size: 12px; opacity: 0.8; }
+        .question-text { font-size: 16px; margin-top: 4px; }
+        .tip {
+            background: rgba(255,193,7,0.1);
+            border: 1px solid rgba(255,193,7,0.3);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .btn:hover { opacity: 0.9; }
+        .copy-btn {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .status { text-align: center; padding: 20px; opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Simulador de Entrevista</h1>
+        
+        <div class="tip">
+            <strong>💡 Dica:</strong> Clique em uma pergunta para copiar para a área de transferência, 
+            depois cole no campo da PWA para testar!
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 16px;">📝 Perguntas Comuns de Entrevista</h2>
+            
+            <div class="question" onclick="copyQuestion(this)">
+                <div class="question-num">Pergunta 1</div>
+                <div class="question-text">Fale um pouco sobre você e sua experiência como desenvolvedor</div>
+            </div>
+            
+            <div class="question" onclick="copyQuestion(this)">
+                <div class="question-num">Pergunta 2</div>
+                <div class="question-text">Qual foi o maior desafio técnico que você enfrentou e como resolveu?</div>
+            </div>
+            
+            <div class="question" onclick="copyQuestion(this)">
+                <div class="question-num">Pergunta 3</div>
+                <div class="question-text">Por que você quer trabalhar conosco?</div>
+            </div>
+            
+            <div class="question" onclick="copyQuestion(this)">
+                <div class="question-num">Pergunta 4</div>
+                <div class="question-text">Como você lida com prazos apertados e pressão no trabalho?</div>
+            </div>
+            
+            <div class="question" onclick="copyQuestion(this)">
+                <div class="question-num">Pergunta 5</div>
+                <div class="question-text">Fale sobre um projeto que você teve que aprender uma tecnologia nova rapidamente</div>
+            </div>
+            
+            <div class="question" onclick="copyQuestion(this)">
+                <div class="question-num">Pergunta 6</div>
+                <div class="question-text">Quais são seus pontos fortes e pontos a melhorar?</div>
+            </div>
+            
+            <div class="question" onclick="copyQuestion(this)">
+                <div class="question-num">Pergunta 7 (Em Inglês)</div>
+                <div class="question-text">Tell me about a time when you had to work with a difficult team member</div>
+            </div>
+            
+            <div class="question" onclick="copyQuestion(this)">
+                <div class="question-num">Pergunta 8 (Em Inglês)</div>
+                <div class="question-text">Describe your experience with React and Node.js</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 16px;">🎯 Pergunta Estratégica</h2>
+            <div class="question" onclick="copyQuestion(this)" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="question-num">FAÇA ESTA PRIMEIRO!</div>
+                <div class="question-text">Por que a vaga está aberta? É uma nova posição ou substituição? Quais são os principais desafios da equipe?</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 16px;">🔗 Links Úteis</h2>
+            <a href="http://localhost:3000" target="_blank" class="btn">Abrir PWA</a>
+            <a href="https://github.com/bfrpaulondev/Buno-Co-Pilotv2" target="_blank" class="btn" style="background: rgba(255,255,255,0.1);">Ver no GitHub</a>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        function copyQuestion(element) {
+            const text = element.querySelector('.question-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const status = document.getElementById('status');
+                status.textContent = '✅ Copiado! Cole na PWA para gerar a resposta';
+                setTimeout(() => status.textContent = '', 2000);
+            });
+        }
+    </script>
+</body>
+</html>
