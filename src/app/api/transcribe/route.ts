@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Usar z-ai-web-dev-sdk para transcrever áudio
-    const zai = await ZAI.create();
+    const zai = await ZAI.create({ apiKey: process.env.ZAI_API_KEY });
 
     const result = await zai.audio.asr.create({ 
       file_base64: audioBase64 

@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     
     const systemPrompt = buildSystemPrompt(cv, detectedLanguage);
 
-    const zai = await ZAI.create();
+    const zai = await ZAI.create({ apiKey: process.env.ZAI_API_KEY });
 
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
       { role: 'system', content: systemPrompt }
