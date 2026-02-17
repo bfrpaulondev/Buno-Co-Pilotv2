@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,14 +8,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Áudio é obrigatório' }, { status: 400 });
     }
 
-    // Usar z-ai-web-dev-sdk para transcrever áudio
-    const zai = await ZAI.create({ apiKey: process.env.ZAI_API_KEY });
+    // Converter base64 para Buffer
+    const audioBuffer = Buffer.from(audioBase64, 'base64');
 
-    const result = await zai.audio.asr.create({ 
-      file_base64: audioBase64 
+    // Criar FormData para enviar para OpenAI Whisper
+    const formData = new FormData();
+    const blob = new Blob([audioBuffer], { type: 'audio/webm' });
+    formData.append('file', blob, 'audio.webm');
+    formData.append('model', 'whisper-1');
+    formData.append('language', 'pt'); // Português, mas detecta automaticamente
+
+    // Chamar OpenAI Whisper API
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: formData,
     });
 
-    const transcribedText = result.text || '';
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Whisper error:', error);
+      return NextResponse.json({ error: 'Erro na transcrição' }, { status: 500 });
+    }
+
+    const data = await response.json();
+    const transcribedText = data.text || '';
 
     if (!transcribedText) {
       return NextResponse.json({ error: 'Não foi possível transcrever o áudio' }, { status: 400 });
@@ -58,7 +76,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    message: 'API de transcrição de áudio funcionando!',
-    supportedFormats: ['wav', 'mp3', 'ogg', 'webm', 'm4a']
+    message: 'API de transcrição usando OpenAI Whisper',
+    supportedFormats: ['webm', 'mp3', 'wav', 'm4a', 'ogg']
   });
 }

@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
 
 // CV do Bruno Paulon
 const DEFAULT_CV = `
@@ -10,7 +9,7 @@ LinkedIn: www.linkedin.com/in/bruno-paulon-react
 Portfolio: bfrpaulon-portofolio.vercel.app/
 
 PERFIL:
-Full Stack Developer com mais de 5 anos de experiência construindo aplicações web escaláveis para clientes na Europa e América Latina. Expertise em React, Node.js e TypeScript, usando Next.js para desenvolver soluções front-end modernas. Proficiência avançada em React, Next.js e Node.js, com experiência em desenvolvimento de APIs REST e gerenciamento de bancos de dados SQL e NoSQL como MongoDB e PostgreSQL.
+Full Stack Developer com mais de 5 anos de experiência construindo aplicações web escaláveis para clientes na Europa e América Latina. Expertise em React, Node.js e TypeScript, usando Next.js para desenvolver soluções front-end modernas.
 
 EXPERIÊNCIA PROFISSIONAL:
 
@@ -90,9 +89,8 @@ export async function POST(request: NextRequest) {
     
     const systemPrompt = buildSystemPrompt(cv, detectedLanguage);
 
-    const zai = await ZAI.create({ apiKey: process.env.ZAI_API_KEY });
-
-    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+    // Construir mensagens para OpenAI
+    const messages: Array<{ role: string; content: string }> = [
       { role: 'system', content: systemPrompt }
     ];
 
@@ -105,30 +103,75 @@ export async function POST(request: NextRequest) {
 
     messages.push({ role: 'user', content: question });
 
-    // Criar stream
-    const stream = await zai.chat.completions.create({
-      messages,
-      model: 'gpt-4o-mini', // Mais rápido que gpt-4o
-      max_tokens: 600,
-      temperature: 0.7,
-      stream: true,
+    // Chamar OpenAI API com streaming
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages,
+        max_tokens: 600,
+        temperature: 0.7,
+        stream: true,
+      }),
     });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('OpenAI error:', error);
+      return new Response(JSON.stringify({ error: 'Erro na API OpenAI' }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
     // Criar ReadableStream para enviar dados em tempo real
     const encoder = new TextEncoder();
+    const reader = response.body?.getReader();
     
+    if (!reader) {
+      return new Response(JSON.stringify({ error: 'No response body' }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const readableStream = new ReadableStream({
       async start(controller) {
         // Primeiro, enviar o idioma detectado
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'language', language: detectedLanguage })}\n\n`));
         
         try {
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'text', content })}\n\n`));
+          const decoder = new TextDecoder();
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') continue;
+                
+                try {
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content || '';
+                  if (content) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'text', content })}\n\n`));
+                  }
+                } catch {
+                  // Ignore parse errors
+                }
+              }
             }
           }
+          
           // Sinalizar fim
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
           controller.close();
@@ -160,7 +203,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return new Response(JSON.stringify({
     status: 'ok',
-    message: 'Interview Assistant API com streaming',
+    message: 'Interview Assistant API com streaming (OpenAI direto)',
     features: [
       'Streaming em tempo real',
       'Detecção automática de idioma (PT/EN)',
